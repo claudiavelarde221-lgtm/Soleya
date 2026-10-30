@@ -1,0 +1,7 @@
+Esta carpeta es para el RELEASE de GitHub (no para el repositorio).
+
+En GitHub: Releases -> Create a new release -> etiqueta v1.0
+Arrastra este archivo:
+  - Soleya.apk  (celular Android)
+
+Soleya-portada.png es solo la imagen con el logo, para enviar por WhatsApp junto al APK.
