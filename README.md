@@ -1,6 +1,19 @@
+<p align="center">
+  <img src="src/icons/logo-negro.png" alt="Soleya" width="160">
+</p>
+
 # Soleya
 
-Aplicación para llevar el negocio de Soleya Store: inventario por categorías (con fotos), ventas y pedidos, cobros de fiados y abonos de los sábados, y envíos nacionales con rótulo y nota de gracias para imprimir. Funciona en Android (APK) y en Windows (EXE), sin internet.
+Aplicación para llevar el negocio de Soleya Store: inventario por categorías con stock y último ingreso, ventas y pedidos con varios productos, cobros de fiados y abonos de los sábados, y envíos nacionales con rótulo y nota de gracias para imprimir. Funciona en Android (APK) y en Windows (EXE), sin internet.
+
+## Descargar
+
+Los instaladores están en la sección **Releases** de este repositorio (a la derecha de la página):
+
+- **`Soleya.apk`** para celular Android.
+- **`Soleya.exe`** para computador con Windows (no necesita instalación).
+
+Cómo instalarlos: [`docs/INSTALAR.txt`](docs/INSTALAR.txt).
 
 ## Stack
 
@@ -36,3 +49,4 @@ releases/     instaladores listos: Soleya.apk y Soleya.exe
 ```
 
 Reglas y convenciones: [`CLAUDE.md`](CLAUDE.md). Cómo instalar: [`docs/INSTALAR.txt`](docs/INSTALAR.txt).
+
