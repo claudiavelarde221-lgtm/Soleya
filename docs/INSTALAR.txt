@@ -1,0 +1,20 @@
+SOLEYA - app de inventario, ventas, cobros y envios
+
+PROBAR EN EL COMPUTADOR
+  En una terminal, dentro de la carpeta SOLEYA:
+    npm run dev
+  y abrir http://localhost:5190
+
+INSTALAR EN EL CELULAR ANDROID
+  La app debe estar publicada en una direccion https para poder instalarse.
+  Opciones gratis: Netlify Drop (arrastrar la carpeta "src"), GitHub Pages o Cloudflare Pages.
+  Luego, en Chrome del celular: abrir la direccion -> menu (3 puntos) -> "Instalar app" / "Agregar a pantalla principal".
+  Queda con el icono de Soleya y funciona sin internet.
+
+DATOS
+  Todo se guarda dentro del celular (no en internet). Usa Ajustes -> "Descargar copia"
+  de vez en cuando para tener respaldo.
+
+IMPRIMIR
+  Rotulo y nota de gracias usan el dialogo de impresion de Android
+  (impresora por WiFi/Bluetooth o "Guardar como PDF").

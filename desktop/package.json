@@ -1,0 +1,38 @@
+{
+  "name": "soleya-escritorio",
+  "version": "1.0.0",
+  "description": "Soleya - inventario, ventas, cobros y envíos",
+  "author": "Soleya Store",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "copiar": "node copiar.js",
+    "build": "node copiar.js && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "co.soleya.escritorio",
+    "productName": "Soleya",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "app/**/*",
+      "!app/LEEME.txt"
+    ],
+    "win": {
+      "icon": "icono.ico",
+      "target": [
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "Soleya.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  }
+}

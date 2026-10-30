@@ -1,0 +1,6 @@
+{
+  "appId": "co.soleya.app",
+  "appName": "Soleya",
+  "webDir": "src",
+  "android": { "backgroundColor": "#ffffff" }
+}

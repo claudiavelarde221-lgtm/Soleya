@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#D81B80">
+<title>Soleya</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <img src="icons/logo-negro.png" alt="Soleya" class="logo">
+  <div class="top-text">
+    <h1 id="title">Soleya</h1>
+    <div class="tag" id="tag">Tu tienda, siempre en orden</div>
+  </div>
+</header>
+
+<main id="main"></main>
+
+<nav class="tabs" id="tabs">
+  <button data-act="tab" data-tab="home"><span>🏠</span>Inicio</button>
+  <button data-act="tab" data-tab="inv"><span>📦</span>Inventario</button>
+  <button data-act="tab" data-tab="sales"><span>🧾</span>Ventas</button>
+  <button data-act="tab" data-tab="debt"><span>💰</span>Cobros</button>
+  <button data-act="tab" data-tab="set"><span>⚙️</span>Ajustes</button>
+</nav>
+
+<div id="sheetWrap" class="sheet-wrap" hidden>
+  <div class="sheet" id="sheet"></div>
+</div>
+<div id="toast" class="toast" hidden></div>
+<div id="printRoot"></div>
+
+<script src="qrcode.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

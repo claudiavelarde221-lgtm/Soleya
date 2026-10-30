@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Soleya</string>
+    <string name="title_activity_main">Soleya</string>
+    <string name="package_name">co.soleya.app</string>
+    <string name="custom_url_scheme">co.soleya.app</string>
+</resources>
