@@ -124,7 +124,7 @@ function render() {
   main.innerHTML = { home: viewHome, inv: viewInv, sales: viewSales, debt: viewDebt, set: viewSet }[state.tab]();
   if (state.tab === 'inv') paintInv();
   if (state.tab === 'sales') paintSales();
-  if (state.tab === 'debt') (state.debtView === 'abonos' ? paintAbonos : paintDebt)();
+  if (state.tab === 'debt') (state.debtView === 'abonos' || state.debtView === 'sin' ? paintAbonos : paintDebt)();
 }
 
 /* ----- Inicio ----- */
@@ -670,8 +670,8 @@ const isCash = (s, p) => s.payments[0] === p && p.date === s.date && p.amount >=
 const longDate = d => { const t = new Date(d + 'T00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }); return t.charAt(0).toUpperCase() + t.slice(1); };
 
 function viewDebt() {
-  const chips = `<div class="chips">${[['debt', 'Quién me debe'], ['abonos', 'Abonos por fecha']].map(([k, l]) => `<button class="chip ${state.debtView === k ? 'on' : ''}" data-act="debtView" data-v="${k}">${l}</button>`).join('')}</div>`;
-  if (state.debtView === 'abonos') {
+  const chips = `<div class="chips">${[['debt', 'Quién me debe'], ['abonos', 'Abonos por fecha'], ['sin', 'Sin abonar']].map(([k, l]) => `<button class="chip ${state.debtView === k ? 'on' : ''}" data-act="debtView" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if (state.debtView === 'abonos' || state.debtView === 'sin') {
     return `${chips}
       <div class="stat gold" id="abonoStat"></div>
       <label>Fecha</label>
@@ -688,7 +688,26 @@ function viewDebt() {
     <input id="debtQ" placeholder="🔍 Buscar persona…" autocomplete="off" value="${esc(state.debtQ)}">
     <div id="debtList" style="margin-top:10px"></div>`;
 }
+// Quienes ya tenían deuda antes de la fecha, la siguen debiendo y no abonaron ese día
+function paintSinAbono() {
+  const d = state.abonoDate || ymd(), map = {};
+  for (const s of db.sales) {
+    const k = norm(s.customer), g = map[k] ||= { key: k, name: s.customer, debt: 0, paidToday: false, last: '' };
+    for (const p of s.payments) { if (p.date === d) g.paidToday = true; if (p.date <= d && p.date > g.last) g.last = p.date; }
+    if (s.date < d) g.debt += Math.max(0, saleTotal(s) - s.payments.filter(p => p.date <= d).reduce((a, p) => a + p.amount, 0));
+  }
+  const now = new Set(debtors().map(g => g.key));
+  const list = Object.values(map).filter(g => g.debt > 0 && !g.paidToday).sort((a, b) => b.debt - a.debt);
+  $('#abonoStat').innerHTML = `<small>Sin abonar · ${esc(longDate(d))}</small><b>${list.length} ${list.length === 1 ? 'persona' : 'personas'} · ${money(list.reduce((a, g) => a + g.debt, 0))}</b>`;
+  $('#abonoList').innerHTML = list.length ? `<div class="cards">${list.map(g => `
+    <div class="row ${now.has(g.key) ? 'click' : ''}" ${now.has(g.key) ? `data-act="openDebtor" data-key="${esc(g.key)}"` : ''}>
+      <div class="grow"><b>${esc(g.name)}</b><small>${g.last ? 'Último abono ' + fmtDate(g.last) : 'Sin abonos aún'}</small></div>
+      <div class="right"><div class="price">${money(g.debt)}</div><span class="badge warn">No abonó</span></div>
+    </div>`).join('')}</div>
+    <div class="muted" style="margin-top:10px">Cuenta a quienes debían desde antes de esta fecha y no abonaron ese día.</div>` : '<div class="empty">Todos los que debían abonaron 🎉</div>';
+}
 function paintAbonos() {
+  if (state.debtView === 'sin') return paintSinAbono();
   const d = state.abonoDate || ymd();
   const pays = db.sales.flatMap(s => s.payments.filter(p => p.date === d).map(p => ({ s, p })));
   const abonos = pays.filter(x => !isCash(x.s, x.p)), cash = pays.filter(x => isCash(x.s, x.p));
