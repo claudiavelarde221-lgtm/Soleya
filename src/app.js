@@ -47,7 +47,7 @@ const DEFAULTS = {
 let db = load();
 if (!db.cats) db.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
 db.products.forEach(p => delete p.photo);   // la app ya no usa fotos
-let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all' };
+let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all', debtQ: '' };
 let cart = null;   // venta en construcción
 let ship = null;   // borrador de datos de envío
 
@@ -123,6 +123,7 @@ function render() {
   const main = $('#main');
   main.innerHTML = { home: viewHome, inv: viewInv, sales: viewSales, debt: viewDebt, set: viewSet }[state.tab]();
   if (state.tab === 'inv') paintInv();
+  if (state.tab === 'debt') paintDebt();
 }
 
 /* ----- Inicio ----- */
@@ -630,12 +631,18 @@ function debtorRow(g) {
     </div>`;
 }
 function viewDebt() {
-  const list = debtors();
-  const total = list.reduce((a, g) => a + g.debt, 0);
+  const total = debtors().reduce((a, g) => a + g.debt, 0);
   return `
     <div class="stat gold"><small>Total por cobrar · próximo sábado ${fmtDate(nextSaturday())}</small><b>${money(total)}</b></div>
     <h2>Quién me debe</h2>
-    ${list.length ? `<div class="cards">${list.map(debtorRow).join('')}</div>` : '<div class="empty">Nadie te debe por ahora 🎉</div>'}`;
+    <input id="debtQ" placeholder="🔍 Buscar persona…" autocomplete="off" value="${esc(state.debtQ)}">
+    <div id="debtList" style="margin-top:10px"></div>`;
+}
+function paintDebt() {
+  const q = norm(state.debtQ), all = debtors();
+  const list = q ? all.filter(g => norm(g.name).includes(q)) : all;
+  $('#debtList').innerHTML = list.length ? `<div class="cards">${list.map(debtorRow).join('')}</div>`
+    : `<div class="empty">${all.length ? 'No encontré a nadie con ese nombre' : 'Nadie te debe por ahora 🎉'}</div>`;
 }
 function openDebtor(key) {
   const g = debtors().find(x => x.key === key);
@@ -941,6 +948,7 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.money !== undefined) t.value = t.value.replace(/\D/g, '') ? fmtNum(num(t.value)) : '';
   if (t.id === 'invQ') { state.invQ = t.value; paintInv(); }
+  else if (t.id === 'debtQ') { state.debtQ = t.value; paintDebt(); }
   else if (t.id === 'pickQ') paintPick();
   else if (t.id === 'thName' || t.id === 'thText') paintThanks();
   else if (t.dataset.in === 'price') { cart.items[t.dataset.i].price = num(t.value); paintTotal(); }
