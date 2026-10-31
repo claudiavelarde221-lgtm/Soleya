@@ -47,7 +47,7 @@ const DEFAULTS = {
 let db = load();
 if (!db.cats) db.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
 db.products.forEach(p => delete p.photo);   // la app ya no usa fotos
-let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all', debtQ: '', salesQ: '', debtView: 'debt', abonoDate: '' };
+let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all', debtQ: '', salesQ: '', salesDate: '', debtView: 'debt', abonoDate: '' };
 let cart = null;   // venta en construcción
 let ship = null;   // borrador de datos de envío
 
@@ -294,20 +294,32 @@ function viewSales() {
   const f = state.salesFilter;
   return `
     <div class="chips">
-      ${[['all', 'Todas'], ['debt', 'Con saldo'], ['paid', 'Pago total'], ['ship', 'Envíos']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="salesFilter" data-f="${k}">${l}</button>`).join('')}
+      ${[['all', 'Todas'], ['debt', 'Con saldo'], ['paid', 'Pago total'], ['ship', 'Envíos'], ['day', 'Por fecha']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="salesFilter" data-f="${k}">${l}</button>`).join('')}
     </div>
+    ${f === 'day' ? `<div class="stat gold" id="dayStat"></div>
+    <label>Fecha</label>
+    <div class="inline" style="margin-bottom:10px">
+      <input id="salesDate" type="date" value="${state.salesDate || ymd()}">
+      <button class="btn sec small fit" data-act="ventasHoy">Hoy</button>
+    </div>` : ''}
     <input id="salesQ" placeholder="🔍 Buscar por nombre…" autocomplete="off" value="${esc(state.salesQ)}">
     <div id="salesList" style="margin-top:10px"></div>
     <button class="fab" data-act="newSale">＋ Venta</button>`;
 }
 function paintSales() {
-  const f = state.salesFilter, q = norm(state.salesQ);
+  const f = state.salesFilter, q = norm(state.salesQ), day = state.salesDate || ymd();
+  if (f === 'day') {
+    const today = db.sales.filter(s => s.date === day), paid = today.filter(s => saleDebt(s) <= 0), open = today.filter(s => saleDebt(s) > 0);
+    const sum = l => l.reduce((a, s) => a + saleTotal(s), 0);
+    $('#dayStat').innerHTML = `<small>Ventas pagadas · ${esc(longDate(day))}</small><b>${paid.length} ${paid.length === 1 ? 'venta' : 'ventas'} · ${money(sum(paid))}</b>`
+      + (open.length ? `<small style="margin-top:6px;text-transform:none">Aparte, con saldo pendiente: ${open.length} · ${money(sum(open))}</small>` : '');
+  }
   const list = db.sales
-    .filter(s => f === 'all' || (f === 'debt' && saleDebt(s) > 0) || (f === 'paid' && saleDebt(s) <= 0) || (f === 'ship' && s.ship))
+    .filter(s => f === 'all' || (f === 'debt' && saleDebt(s) > 0) || (f === 'paid' && saleDebt(s) <= 0) || (f === 'ship' && s.ship) || (f === 'day' && s.date === day && saleDebt(s) <= 0))
     .filter(s => !q || norm(s.customer).includes(q))
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   $('#salesList').innerHTML = list.length ? `<div class="cards">${list.map(saleRow).join('')}</div>`
-    : `<div class="empty">${q ? 'No encontré a nadie con ese nombre' : 'No hay ventas aquí todavía.'}</div>`;
+    : `<div class="empty">${q ? 'No encontré a nadie con ese nombre' : f === 'day' ? 'No hay ventas pagadas en esta fecha' : 'No hay ventas aquí todavía.'}</div>`;
 }
 function saleRow(s) {
   const debt = saleDebt(s);
@@ -866,6 +878,7 @@ const acts = {
   delProd: el => { if (confirm('¿Eliminar este producto del inventario?')) { db.products = db.products.filter(p => p.id !== el.dataset.id); save(); closeSheet(); } },
 
   debtView: el => { state.debtView = el.dataset.v; render(); },
+  ventasHoy: () => { state.salesDate = ''; render(); },
   abonoHoy: () => { state.abonoDate = ''; render(); },
   salesFilter: el => { state.salesFilter = el.dataset.f; render(); },
   newSale: openNewSale,
@@ -986,6 +999,7 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.money !== undefined) t.value = t.value.replace(/\D/g, '') ? fmtNum(num(t.value)) : '';
   if (t.id === 'invQ') { state.invQ = t.value; paintInv(); }
+  else if (t.id === 'salesDate') { state.salesDate = t.value; paintSales(); }
   else if (t.id === 'salesQ') { state.salesQ = t.value; paintSales(); }
   else if (t.id === 'abonoDate') { state.abonoDate = t.value; paintAbonos(); }
   else if (t.id === 'debtQ') { state.debtQ = t.value; paintDebt(); }
