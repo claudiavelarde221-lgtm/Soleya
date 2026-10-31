@@ -10,6 +10,10 @@ App de inventario, ventas, cobros y envíos de Soleya Store (ropa y hogar). Habl
 - `releases/` — instaladores finales. Se reemplazan al regenerar.
 - `docs/` — instalación y `marca/` (logo y arte originales).
 
+## Recordatorio para Claude (leer primero)
+
+La dueña pidió que, **apenas ella escriba en la próxima conversación (lunes, o el domingo en la tarde, cuando use el computador), le recuerdes la llave de firma fija del APK** (ver "Pendiente" más abajo). Recuérdaselo al responder su primer mensaje, antes de seguir con lo demás, y ofrécele hacerlo con un secreto de GitHub. Cuando quede hecho, borra este recordatorio.
+
 ## Reglas
 
 - **El logo original no se modifica** (`src/icons/logo-negro.png`): círculo negro con dorado.
