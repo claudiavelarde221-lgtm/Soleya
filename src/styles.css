@@ -286,6 +286,9 @@ small, .muted { color: var(--muted); font-size: 13px; }
 /* ===== Chips de filtro ===== */
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; flex-wrap: wrap; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
+.chips.nowrap { flex-wrap: nowrap; }
+.chips.nowrap .chip { flex: none; white-space: nowrap; }
+.pick.sug { max-height: 190px; }
 .chip {
   flex: none;
   border: 1.5px solid var(--line);
