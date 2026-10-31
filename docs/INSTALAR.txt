@@ -13,9 +13,10 @@ INSTALAR EN EL CELULAR ANDROID
 INSTALAR EN WINDOWS
   Soleya.exe no necesita instalacion: doble clic.
 
-DATOS
-  Todo se guarda dentro del celular (no en internet). Usa Ajustes -> "Descargar copia"
-  de vez en cuando para tener respaldo.
+DATOS Y ACTUALIZAR A UNA VERSION NUEVA
+  Todo se guarda dentro del celular (no en internet).
+  Antes de instalar una version nueva: Ajustes -> "Guardar copia" y enviate el archivo
+  (WhatsApp, Drive o correo). Ya con la version nueva: Ajustes -> "Cargar copia" y elige ese archivo.
 
 IMPRIMIR
   Rotulo y nota de gracias usan el dialogo de impresion de Android

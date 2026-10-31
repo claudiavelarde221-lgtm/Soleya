@@ -683,12 +683,13 @@ function viewSet() {
         <button class="btn" data-act="saveSet">Guardar ajustes</button>
 
         <h2>Copia de seguridad</h2>
-        <div class="muted">Tus datos viven en este aparato. Guarda una copia de vez en cuando por si lo cambias o borras la app.</div>
+        <div class="muted">Tus datos (productos, ventas, abonos, envíos y ajustes) viven en este aparato.
+          <b>Antes de instalar una versión nueva o cambiar de celular, toca “Guardar copia”</b> y envíatela (WhatsApp, Drive o correo). En la versión nueva toca “Cargar copia” y elige ese archivo: todo se llena solo.</div>
         <div class="btns">
-          <button class="btn sec" data-act="backup">Descargar copia</button>
-          <button class="btn sec" data-act="restore">Restaurar copia</button>
+          <button class="btn sec" data-act="backup">⬇️ Guardar copia</button>
+          <button class="btn sec" data-act="restore">⬆️ Cargar copia</button>
         </div>
-        <input type="file" id="restoreFile" accept="application/json" hidden>
+        <input type="file" id="restoreFile" accept=".json,application/json,text/plain,*/*" hidden>
       </div>
     </div>
 
@@ -917,13 +918,14 @@ const acts = {
       // En el celular no hay "descargas" del navegador: se guarda y se comparte (WhatsApp, Drive, correo…)
       try {
         const f = await P.Filesystem.writeFile({ path: `soleya-copia-${ymd()}.json`, data: JSON.stringify(db, null, 1), directory: 'CACHE', encoding: 'utf8' });
-        await P.Share.share({ title: 'Copia de Soleya', files: [f.uri] });
+        await P.Share.share({ title: 'Copia de Soleya', text: 'Copia de seguridad de Soleya', files: [f.uri] });
       } catch (e) { if (!/cancel/i.test(e.message || '')) toast('No se pudo crear la copia'); }
       return;
     }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' }));
     a.download = `soleya-copia-${ymd()}.json`; a.click();
+    toast('Copia guardada ✓');
   },
   restore: () => $('#restoreFile').click(),
 };
@@ -961,7 +963,7 @@ document.addEventListener('change', e => {
       try {
         const d = JSON.parse(r.result);
         if (!Array.isArray(d.products) || !Array.isArray(d.sales)) throw 0;
-        if (!confirm('Esto reemplaza todo lo que hay ahora en la app. ¿Continuar?')) return;
+        if (!confirm(`La copia trae ${d.products.length} producto(s) y ${d.sales.length} venta(s).\n\nEsto reemplaza todo lo que hay ahora en la app. ¿Continuar?`)) return;
         db = { ...DEFAULTS, ...d, settings: { ...DEFAULTS.settings, ...(d.settings || {}) } };
         if (!db.cats) db.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
         db.products.forEach(p => delete p.photo);
