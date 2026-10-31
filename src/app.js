@@ -47,7 +47,7 @@ const DEFAULTS = {
 let db = load();
 if (!db.cats) db.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
 db.products.forEach(p => delete p.photo);   // la app ya no usa fotos
-let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all', debtQ: '' };
+let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all', debtQ: '', debtView: 'debt', abonoDate: '' };
 let cart = null;   // venta en construcción
 let ship = null;   // borrador de datos de envío
 
@@ -123,7 +123,7 @@ function render() {
   const main = $('#main');
   main.innerHTML = { home: viewHome, inv: viewInv, sales: viewSales, debt: viewDebt, set: viewSet }[state.tab]();
   if (state.tab === 'inv') paintInv();
-  if (state.tab === 'debt') paintDebt();
+  if (state.tab === 'debt') (state.debtView === 'abonos' ? paintAbonos : paintDebt)();
 }
 
 /* ----- Inicio ----- */
@@ -630,13 +630,41 @@ function debtorRow(g) {
       <div class="right"><div class="price">${money(g.debt)}</div>${lateThisWeek(g) ? '<span class="badge warn">Sin abono</span>' : ''}</div>
     </div>`;
 }
+// Pago de contado: el único pago de una venta que se pagó completa el mismo día (no es un abono)
+const isCash = (s, p) => s.payments[0] === p && p.date === s.date && p.amount >= saleTotal(s);
+const longDate = d => { const t = new Date(d + 'T00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }); return t.charAt(0).toUpperCase() + t.slice(1); };
+
 function viewDebt() {
+  const chips = `<div class="chips">${[['debt', 'Quién me debe'], ['abonos', 'Abonos por fecha']].map(([k, l]) => `<button class="chip ${state.debtView === k ? 'on' : ''}" data-act="debtView" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if (state.debtView === 'abonos') {
+    return `${chips}
+      <div class="stat gold" id="abonoStat"></div>
+      <label>Fecha</label>
+      <div class="inline">
+        <input id="abonoDate" type="date" value="${state.abonoDate || ymd()}">
+        <button class="btn sec small fit" data-act="abonoHoy">Hoy</button>
+      </div>
+      <div id="abonoList" style="margin-top:10px"></div>`;
+  }
   const total = debtors().reduce((a, g) => a + g.debt, 0);
-  return `
+  return `${chips}
     <div class="stat gold"><small>Total por cobrar · próximo sábado ${fmtDate(nextSaturday())}</small><b>${money(total)}</b></div>
     <h2>Quién me debe</h2>
     <input id="debtQ" placeholder="🔍 Buscar persona…" autocomplete="off" value="${esc(state.debtQ)}">
     <div id="debtList" style="margin-top:10px"></div>`;
+}
+function paintAbonos() {
+  const d = state.abonoDate || ymd();
+  const pays = db.sales.flatMap(s => s.payments.filter(p => p.date === d).map(p => ({ s, p })));
+  const abonos = pays.filter(x => !isCash(x.s, x.p)), cash = pays.filter(x => isCash(x.s, x.p));
+  const sum = l => l.reduce((a, x) => a + x.p.amount, 0);
+  $('#abonoStat').innerHTML = `<small>Abonos · ${esc(longDate(d))}</small><b>${money(sum(abonos))}</b>`;
+  $('#abonoList').innerHTML = (abonos.length ? `<div class="cards">${abonos.map(({ s, p }) => `
+    <div class="row click" data-act="openSale" data-id="${s.id}">
+      <div class="grow"><b>${esc(s.customer)}</b><small>${esc(itemsText(s))}</small></div>
+      <div class="right"><div class="price">${money(p.amount)}</div>${saleDebt(s) > 0 ? `<small>Debe ${money(saleDebt(s))}</small>` : '<span class="badge ok">Pagó todo</span>'}</div>
+    </div>`).join('')}</div>` : '<div class="empty">No hay abonos en esta fecha</div>')
+    + (cash.length ? `<div class="muted" style="margin-top:10px">Además, ventas pagadas de contado ese día: ${money(sum(cash))} (no se cuentan como abonos).</div>` : '');
 }
 function paintDebt() {
   const q = norm(state.debtQ), all = debtors();
@@ -829,6 +857,8 @@ const acts = {
   },
   delProd: el => { if (confirm('¿Eliminar este producto del inventario?')) { db.products = db.products.filter(p => p.id !== el.dataset.id); save(); closeSheet(); } },
 
+  debtView: el => { state.debtView = el.dataset.v; render(); },
+  abonoHoy: () => { state.abonoDate = ''; render(); },
   salesFilter: el => { state.salesFilter = el.dataset.f; render(); },
   newSale: openNewSale,
   addToCart: el => {
@@ -948,6 +978,7 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.money !== undefined) t.value = t.value.replace(/\D/g, '') ? fmtNum(num(t.value)) : '';
   if (t.id === 'invQ') { state.invQ = t.value; paintInv(); }
+  else if (t.id === 'abonoDate') { state.abonoDate = t.value; paintAbonos(); }
   else if (t.id === 'debtQ') { state.debtQ = t.value; paintDebt(); }
   else if (t.id === 'pickQ') paintPick();
   else if (t.id === 'thName' || t.id === 'thText') paintThanks();
