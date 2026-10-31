@@ -47,7 +47,7 @@ const DEFAULTS = {
 let db = load();
 if (!db.cats) db.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
 db.products.forEach(p => delete p.photo);   // la app ya no usa fotos
-let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all', debtQ: '', debtView: 'debt', abonoDate: '' };
+let state = { tab: 'home', invCat: '', invQ: '', invOpen: false, salesFilter: 'all', debtQ: '', salesQ: '', debtView: 'debt', abonoDate: '' };
 let cart = null;   // venta en construcción
 let ship = null;   // borrador de datos de envío
 
@@ -123,6 +123,7 @@ function render() {
   const main = $('#main');
   main.innerHTML = { home: viewHome, inv: viewInv, sales: viewSales, debt: viewDebt, set: viewSet }[state.tab]();
   if (state.tab === 'inv') paintInv();
+  if (state.tab === 'sales') paintSales();
   if (state.tab === 'debt') (state.debtView === 'abonos' ? paintAbonos : paintDebt)();
 }
 
@@ -291,15 +292,22 @@ function paintProdStock(p) {
 /* ----- Ventas ----- */
 function viewSales() {
   const f = state.salesFilter;
-  const list = db.sales
-    .filter(s => f === 'all' || (f === 'debt' && saleDebt(s) > 0) || (f === 'paid' && saleDebt(s) <= 0) || (f === 'ship' && s.ship))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   return `
     <div class="chips">
       ${[['all', 'Todas'], ['debt', 'Con saldo'], ['paid', 'Pago total'], ['ship', 'Envíos']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="salesFilter" data-f="${k}">${l}</button>`).join('')}
     </div>
-    ${list.length ? `<div class="cards">${list.map(saleRow).join('')}</div>` : '<div class="empty">No hay ventas aquí todavía.</div>'}
+    <input id="salesQ" placeholder="🔍 Buscar por nombre…" autocomplete="off" value="${esc(state.salesQ)}">
+    <div id="salesList" style="margin-top:10px"></div>
     <button class="fab" data-act="newSale">＋ Venta</button>`;
+}
+function paintSales() {
+  const f = state.salesFilter, q = norm(state.salesQ);
+  const list = db.sales
+    .filter(s => f === 'all' || (f === 'debt' && saleDebt(s) > 0) || (f === 'paid' && saleDebt(s) <= 0) || (f === 'ship' && s.ship))
+    .filter(s => !q || norm(s.customer).includes(q))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  $('#salesList').innerHTML = list.length ? `<div class="cards">${list.map(saleRow).join('')}</div>`
+    : `<div class="empty">${q ? 'No encontré a nadie con ese nombre' : 'No hay ventas aquí todavía.'}</div>`;
 }
 function saleRow(s) {
   const debt = saleDebt(s);
@@ -978,6 +986,7 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.money !== undefined) t.value = t.value.replace(/\D/g, '') ? fmtNum(num(t.value)) : '';
   if (t.id === 'invQ') { state.invQ = t.value; paintInv(); }
+  else if (t.id === 'salesQ') { state.salesQ = t.value; paintSales(); }
   else if (t.id === 'abonoDate') { state.abonoDate = t.value; paintAbonos(); }
   else if (t.id === 'debtQ') { state.debtQ = t.value; paintDebt(); }
   else if (t.id === 'pickQ') paintPick();
