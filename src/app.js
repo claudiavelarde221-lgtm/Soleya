@@ -165,7 +165,6 @@ function viewInv() {
   return `
     <div class="invbar">
       <input id="invQ" placeholder="🔍 Buscar producto…" value="${esc(state.invQ)}">
-      <button class="btn small fit" data-act="addProd">＋ Producto</button>
     </div>
     <div class="invwrap" id="invWrap">
       <div class="invlist" id="invCats"></div>
@@ -192,12 +191,14 @@ function subRow(p, showCat) {
 
 function paintInv() {
   const q = norm(state.invQ);
+  const worth = db.products.reduce((a, p) => a + p.stock * p.price, 0), units = db.products.reduce((a, p) => a + p.stock, 0);
+
   $('#invWrap').classList.toggle('open', !!state.invOpen || !!q);
 
   $('#invCats').innerHTML = db.cats.map(c => `
     <button class="li ${!q && c.n === state.invCat ? 'sel' : ''}" data-act="invSel" data-n="${esc(c.n)}">
       <span>${esc(c.n)}</span><span class="n ${catTotal(c.n) <= 0 ? 'zero' : ''}">${catTotal(c.n)}</span>
-    </button>`).join('');
+    </button>`).join('') + `<div class="stat gold" id="invTotal"><small>Total en inventario (${units} unidades disponibles)</small><b>${money(worth)}</b></div>`;
 
   const panel = $('#invPanel');
   if (q) {   // búsqueda: resultados de todas las categorías
