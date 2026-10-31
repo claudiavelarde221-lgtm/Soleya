@@ -52,10 +52,15 @@ let cart = null;   // venta en construcción
 let ship = null;   // borrador de datos de envío
 
 function load() {
+  let txt = null;
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY));
+    txt = localStorage.getItem(KEY);
+    const raw = JSON.parse(txt);
     if (raw) return { ...DEFAULTS, ...raw, settings: { ...DEFAULTS.settings, ...(raw.settings || {}) } };
-  } catch (e) { /* datos vacíos */ }
+  } catch (e) {
+    // Datos dañados: se guardan aparte para no perderlos al sobrescribir
+    if (txt) try { localStorage.setItem(KEY + '.dañado', txt); } catch (e2) { /* sin espacio */ }
+  }
   return JSON.parse(JSON.stringify(DEFAULTS));
 }
 function save() {
@@ -160,7 +165,6 @@ function viewInv() {
   return `
     <div class="invbar">
       <input id="invQ" placeholder="🔍 Buscar producto…" value="${esc(state.invQ)}">
-      <button class="btn small fit" data-act="addProd">＋ Producto</button>
     </div>
     <div class="invwrap" id="invWrap">
       <div class="invlist" id="invCats"></div>
@@ -187,12 +191,14 @@ function subRow(p, showCat) {
 
 function paintInv() {
   const q = norm(state.invQ);
+  const worth = db.products.reduce((a, p) => a + p.stock * p.price, 0), units = db.products.reduce((a, p) => a + p.stock, 0);
+
   $('#invWrap').classList.toggle('open', !!state.invOpen || !!q);
 
   $('#invCats').innerHTML = db.cats.map(c => `
     <button class="li ${!q && c.n === state.invCat ? 'sel' : ''}" data-act="invSel" data-n="${esc(c.n)}">
       <span>${esc(c.n)}</span><span class="n ${catTotal(c.n) <= 0 ? 'zero' : ''}">${catTotal(c.n)}</span>
-    </button>`).join('');
+    </button>`).join('') + `<div class="stat gold" id="invTotal"><small>Total en inventario (${units} unidades disponibles)</small><b>${money(worth)}</b></div>`;
 
   const panel = $('#invPanel');
   if (q) {   // búsqueda: resultados de todas las categorías
@@ -285,11 +291,11 @@ function paintProdStock(p) {
 function viewSales() {
   const f = state.salesFilter;
   const list = db.sales
-    .filter(s => f === 'all' || (f === 'debt' && saleDebt(s) > 0) || (f === 'ship' && s.ship))
+    .filter(s => f === 'all' || (f === 'debt' && saleDebt(s) > 0) || (f === 'paid' && saleDebt(s) <= 0) || (f === 'ship' && s.ship))
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   return `
     <div class="chips">
-      ${[['all', 'Todas'], ['debt', 'Con saldo'], ['ship', 'Envíos']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="salesFilter" data-f="${k}">${l}</button>`).join('')}
+      ${[['all', 'Todas'], ['debt', 'Con saldo'], ['paid', 'Pago total'], ['ship', 'Envíos']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="salesFilter" data-f="${k}">${l}</button>`).join('')}
     </div>
     ${list.length ? `<div class="cards">${list.map(saleRow).join('')}</div>` : '<div class="empty">No hay ventas aquí todavía.</div>'}
     <button class="fab" data-act="newSale">＋ Venta</button>`;
@@ -307,18 +313,17 @@ function saleRow(s) {
 
 function openNewSale() {
   cart = { customer: '', phone: '', items: [], mode: 'full', abono: '', ship: false, note: '', date: ymd(), q: '' };
-  const names = [...new Set(db.sales.map(s => s.customer))];
   sheet(`
     ${sheetHead('Nueva venta')}
     <label>Cliente</label>
-    <input data-bind="cart:customer" list="custList" placeholder="Nombre del cliente" autocomplete="off">
-    <datalist id="custList">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    <input id="custIn" data-bind="cart:customer" placeholder="Nombre del cliente" autocomplete="off">
+    <div id="custSug" class="pick sug" hidden></div>
     <label>Celular / WhatsApp (opcional)</label>
-    <input data-bind="cart:phone" inputmode="tel" placeholder="3001234567">
+    <input id="custPhone" data-bind="cart:phone" inputmode="tel" placeholder="3001234567">
 
     <div class="sec-title">Agregar productos <span class="muted" style="font-weight:400">· toca ＋ en todos los que lleve</span></div>
     <input id="pickQ" placeholder="🔍 Buscar producto…" autocomplete="off">
-    <div class="chips" id="pickChips" style="margin-top:8px"></div>
+    <div class="chips nowrap" id="pickChips" style="margin-top:8px"></div>
     <div id="pickList"></div>
     <div class="sec-title">En esta venta <span class="muted" id="cartCount" style="font-weight:400"></span></div>
     <div id="cartLines"><div class="muted">Aún no has agregado productos.</div></div>
@@ -341,6 +346,14 @@ function openNewSale() {
     <button class="btn" data-act="saveSale">Guardar venta</button>`);
   paintCart();
   paintPick();
+}
+
+// Sugerencias de clientes: salen debajo del campo (no tapan el teclado) y se cierran al elegir
+function paintCust() {
+  const q = norm($('#custIn').value), box = $('#custSug');
+  const names = [...new Set(db.sales.map(s => s.customer))].filter(n => q && norm(n).includes(q) && norm(n) !== q).slice(0, 5);
+  box.hidden = !names.length;
+  box.innerHTML = names.map(n => `<div data-act="pickCust" data-n="${esc(n)}">${esc(n)}</div>`).join('');
 }
 
 function paintCart() {
@@ -424,12 +437,7 @@ function openSale(id) {
     ${s.payments.length ? s.payments.map(p => `
       <div class="line"><div class="grow">${fmtDate(p.date)}</div><b>${money(p.amount)}</b>
       <button class="x" style="font-size:20px" data-act="delPay" data-id="${s.id}" data-pid="${p.id}">🗑</button></div>`).join('') : '<div class="muted">Sin abonos todavía.</div>'}
-    ${debt > 0 ? `
-      <div class="inline" style="margin-top:10px">
-        <input id="payAmt" inputmode="numeric" data-money placeholder="Monto del abono">
-        <input id="payDate" type="date" class="fit" style="width:150px" value="${ymd()}">
-      </div>
-      <button class="btn" data-act="addPay" data-id="${s.id}">Registrar abono</button>
+    ${debt > 0 ? `<div class="muted" style="margin-top:8px">Para registrar un abono ve a la pestaña Cobros.</div>
       ${s.phone ? `<a class="btn sec" style="display:block;text-align:center;text-decoration:none" target="_blank" href="${waLink(s.phone, reminderText(s.customer, debt))}">Recordar saldo por WhatsApp</a>` : ''}` : ''}
 
     ${s.ship ? shipBlock(s) : `<button class="btn sec" data-act="makeShip" data-id="${s.id}">📦 Convertir en envío nacional</button>`}
@@ -676,12 +684,13 @@ function viewSet() {
         <button class="btn" data-act="saveSet">Guardar ajustes</button>
 
         <h2>Copia de seguridad</h2>
-        <div class="muted">Tus datos viven en este aparato. Guarda una copia de vez en cuando por si lo cambias o borras la app (las fotos también se guardan).</div>
+        <div class="muted">Tus datos (productos, ventas, abonos, envíos y ajustes) viven en este aparato.
+          <b>Antes de instalar una versión nueva o cambiar de celular, toca “Guardar copia”</b> y envíatela (WhatsApp, Drive o correo). En la versión nueva toca “Cargar copia” y elige ese archivo: todo se llena solo.</div>
         <div class="btns">
-          <button class="btn sec" data-act="backup">Descargar copia</button>
-          <button class="btn sec" data-act="restore">Restaurar copia</button>
+          <button class="btn sec" data-act="backup">⬇️ Guardar copia</button>
+          <button class="btn sec" data-act="restore">⬆️ Cargar copia</button>
         </div>
-        <input type="file" id="restoreFile" accept="application/json" hidden>
+        <input type="file" id="restoreFile" accept=".json,application/json,text/plain,*/*" hidden>
       </div>
     </div>
 
@@ -775,7 +784,7 @@ const acts = {
     if (!confirm(msg)) return;
     db.products = db.products.filter(p => p.cat !== n);
     db.cats = db.cats.filter(c => c.n !== n);
-    if (state.invCat === n) state.invCat = 'Todas';
+    if (state.invCat === n) state.invCat = '';
     save(); closeSheet(); toast('Categoría eliminada');
   },
 
@@ -825,7 +834,13 @@ const acts = {
     if (i >= 0 && --cart.items[i].qty <= 0) cart.items.splice(i, 1);
     paintPick(); paintCart();
   },
-  pickCat: el => { cart.cat = el.dataset.cat; paintPick(); },
+  pickCust: el => {
+    const n = el.dataset.n, last = db.sales.filter(s => s.customer === n && s.phone).pop();
+    cart.customer = n; $('#custIn').value = n;
+    if (last && !cart.phone) { cart.phone = last.phone; $('#custPhone').value = last.phone; }
+    $('#custSug').hidden = true;
+  },
+  pickCat: el => { cart.cat = el.dataset.cat; paintPick(); $('#pickList').scrollIntoView({ block: 'nearest' }); },
   freeItem: () => {
     const name = prompt('Nombre del artículo:'); if (!name) return;
     const price = num(prompt('Precio:') || 0);
@@ -839,12 +854,6 @@ const acts = {
   },
   saveSale,
   openSale: el => openSale(el.dataset.id),
-  addPay: el => {
-    const s = db.sales.find(x => x.id === el.dataset.id), amt = num($('#payAmt').value);
-    if (amt <= 0) return toast('Escribe el monto');
-    s.payments.push({ id: uid(), date: $('#payDate').value || ymd(), amount: Math.min(amt, saleDebt(s)) });
-    save(); openSale(s.id); toast('Abono registrado ✓');
-  },
   delPay: el => {
     if (!confirm('¿Borrar este abono?')) return;
     const s = db.sales.find(x => x.id === el.dataset.id);
@@ -910,13 +919,14 @@ const acts = {
       // En el celular no hay "descargas" del navegador: se guarda y se comparte (WhatsApp, Drive, correo…)
       try {
         const f = await P.Filesystem.writeFile({ path: `soleya-copia-${ymd()}.json`, data: JSON.stringify(db, null, 1), directory: 'CACHE', encoding: 'utf8' });
-        await P.Share.share({ title: 'Copia de Soleya', files: [f.uri] });
+        await P.Share.share({ title: 'Copia de Soleya', text: 'Copia de seguridad de Soleya', files: [f.uri] });
       } catch (e) { if (!/cancel/i.test(e.message || '')) toast('No se pudo crear la copia'); }
       return;
     }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' }));
     a.download = `soleya-copia-${ymd()}.json`; a.click();
+    toast('Copia guardada ✓');
   },
   restore: () => $('#restoreFile').click(),
 };
@@ -934,7 +944,7 @@ document.addEventListener('input', e => {
   else if (t.id === 'pickQ') paintPick();
   else if (t.id === 'thName' || t.id === 'thText') paintThanks();
   else if (t.dataset.in === 'price') { cart.items[t.dataset.i].price = num(t.value); paintTotal(); }
-  else if (t.dataset.bind) { const [o, k] = t.dataset.bind.split(':'); (o === 'cart' ? cart : ship)[k] = t.value; }
+  else if (t.dataset.bind) { const [o, k] = t.dataset.bind.split(':'); (o === 'cart' ? cart : ship)[k] = t.value; if (t.id === 'custIn') paintCust(); }
 });
 
 document.addEventListener('change', e => {
@@ -954,7 +964,7 @@ document.addEventListener('change', e => {
       try {
         const d = JSON.parse(r.result);
         if (!Array.isArray(d.products) || !Array.isArray(d.sales)) throw 0;
-        if (!confirm('Esto reemplaza todo lo que hay ahora en la app. ¿Continuar?')) return;
+        if (!confirm(`La copia trae ${d.products.length} producto(s) y ${d.sales.length} venta(s).\n\nEsto reemplaza todo lo que hay ahora en la app. ¿Continuar?`)) return;
         db = { ...DEFAULTS, ...d, settings: { ...DEFAULTS.settings, ...(d.settings || {}) } };
         if (!db.cats) db.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
         db.products.forEach(p => delete p.photo);
@@ -962,6 +972,7 @@ document.addEventListener('change', e => {
       } catch (err) { toast('Ese archivo no es una copia válida'); }
     };
     r.readAsText(t.files[0]);
+    t.value = '';
   }
 });
 

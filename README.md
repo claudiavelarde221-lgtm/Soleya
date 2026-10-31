@@ -31,7 +31,7 @@ Requisitos: Node.js, Java 17 y el SDK de Android (para el APK).
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Abre la app en el navegador (http://localhost:5190) |
-| `npm run apk` | Genera el APK en `android/app/build/outputs/apk/debug/` |
+| `npm run apk` | Genera el APK en `android/app/build/outputs/apk/debug/` (Windows, Mac o Linux) |
 | `npm run exe` | Genera el EXE en `desktop/dist/` |
 
 Después de generar, copiar `Soleya.apk` y `Soleya.exe` a [`releases/`](releases/).
