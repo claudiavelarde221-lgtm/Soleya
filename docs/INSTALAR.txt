@@ -6,10 +6,12 @@ PROBAR EN EL COMPUTADOR
   y abrir http://localhost:5190
 
 INSTALAR EN EL CELULAR ANDROID
-  La app debe estar publicada en una direccion https para poder instalarse.
-  Opciones gratis: Netlify Drop (arrastrar la carpeta "src"), GitHub Pages o Cloudflare Pages.
-  Luego, en Chrome del celular: abrir la direccion -> menu (3 puntos) -> "Instalar app" / "Agregar a pantalla principal".
-  Queda con el icono de Soleya y funciona sin internet.
+  Pasa Soleya.apk al celular (WhatsApp, Drive o cable), tocalo y acepta
+  "instalar apps de origen desconocido" si el celular lo pide.
+  Funciona sin internet.
+
+INSTALAR EN WINDOWS
+  Soleya.exe no necesita instalacion: doble clic.
 
 DATOS
   Todo se guarda dentro del celular (no en internet). Usa Ajustes -> "Descargar copia"

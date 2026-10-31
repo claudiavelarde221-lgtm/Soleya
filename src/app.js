@@ -52,10 +52,15 @@ let cart = null;   // venta en construcción
 let ship = null;   // borrador de datos de envío
 
 function load() {
+  let txt = null;
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY));
+    txt = localStorage.getItem(KEY);
+    const raw = JSON.parse(txt);
     if (raw) return { ...DEFAULTS, ...raw, settings: { ...DEFAULTS.settings, ...(raw.settings || {}) } };
-  } catch (e) { /* datos vacíos */ }
+  } catch (e) {
+    // Datos dañados: se guardan aparte para no perderlos al sobrescribir
+    if (txt) try { localStorage.setItem(KEY + '.dañado', txt); } catch (e2) { /* sin espacio */ }
+  }
   return JSON.parse(JSON.stringify(DEFAULTS));
 }
 function save() {
@@ -676,7 +681,7 @@ function viewSet() {
         <button class="btn" data-act="saveSet">Guardar ajustes</button>
 
         <h2>Copia de seguridad</h2>
-        <div class="muted">Tus datos viven en este aparato. Guarda una copia de vez en cuando por si lo cambias o borras la app (las fotos también se guardan).</div>
+        <div class="muted">Tus datos viven en este aparato. Guarda una copia de vez en cuando por si lo cambias o borras la app.</div>
         <div class="btns">
           <button class="btn sec" data-act="backup">Descargar copia</button>
           <button class="btn sec" data-act="restore">Restaurar copia</button>
@@ -775,7 +780,7 @@ const acts = {
     if (!confirm(msg)) return;
     db.products = db.products.filter(p => p.cat !== n);
     db.cats = db.cats.filter(c => c.n !== n);
-    if (state.invCat === n) state.invCat = 'Todas';
+    if (state.invCat === n) state.invCat = '';
     save(); closeSheet(); toast('Categoría eliminada');
   },
 
@@ -962,6 +967,7 @@ document.addEventListener('change', e => {
       } catch (err) { toast('Ese archivo no es una copia válida'); }
     };
     r.readAsText(t.files[0]);
+    t.value = '';
   }
 });
 
