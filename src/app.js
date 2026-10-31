@@ -294,9 +294,9 @@ function viewSales() {
   const f = state.salesFilter;
   return `
     <div class="chips">
-      ${[['all', 'Todas'], ['debt', 'Con saldo'], ['paid', 'Pago total'], ['ship', 'Envíos'], ['day', 'Por fecha']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="salesFilter" data-f="${k}">${l}</button>`).join('')}
+      ${[['all', 'Todas'], ['debt', 'Con saldo'], ['paid', 'Pago total'], ['ship', 'Envíos'], ['day', 'Por fecha'], ['total', 'Ventas totales']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="salesFilter" data-f="${k}">${l}</button>`).join('')}
     </div>
-    ${f === 'day' ? `<div class="stat gold" id="dayStat"></div>
+    ${f === 'day' || f === 'total' ? `<div class="stat gold" id="dayStat"></div>
     <label>Fecha</label>
     <div class="inline" style="margin-bottom:10px">
       <input id="salesDate" type="date" value="${state.salesDate || ymd()}">
@@ -308,6 +308,21 @@ function viewSales() {
 }
 function paintSales() {
   const f = state.salesFilter, q = norm(state.salesQ), day = state.salesDate || ymd();
+  if (f === 'total') {   // ingresos del día: ventas de contado + abonos recibidos
+    const pays = db.sales.flatMap(s => s.payments.filter(p => p.date === day).map(p => ({ s, p, cash: isCash(s, p) })));
+    const cash = pays.filter(x => x.cash), ab = pays.filter(x => !x.cash);
+    const sum = l => l.reduce((a, x) => a + x.p.amount, 0);
+    $('#dayStat').innerHTML = `<small>Ingresos del día · ${esc(longDate(day))}</small><b>${money(sum(pays))}</b>
+      <small style="margin-top:8px;text-transform:none">Ventas pagadas completas: ${cash.length} · ${money(sum(cash))}</small>
+      <small style="text-transform:none">Abonos de fiados: ${ab.length} · ${money(sum(ab))}</small>`;
+    const rows = [...cash, ...ab].filter(x => !q || norm(x.s.customer).includes(q));
+    $('#salesList').innerHTML = rows.length ? `<div class="cards">${rows.map(({ s, p, cash }) => `
+      <div class="row click" data-act="openSale" data-id="${s.id}">
+        <div class="grow"><b>${esc(s.customer)}</b><small>${cash ? 'Venta pagada' : 'Abono'} · ${esc(itemsText(s))}</small></div>
+        <div class="right"><div class="price">${money(p.amount)}</div></div>
+      </div>`).join('')}</div>` : `<div class="empty">${q ? 'No encontré a nadie con ese nombre' : 'No hay ingresos en esta fecha'}</div>`;
+    return;
+  }
   if (f === 'day') {
     const today = db.sales.filter(s => s.date === day), paid = today.filter(s => saleDebt(s) <= 0), open = today.filter(s => saleDebt(s) > 0);
     const sum = l => l.reduce((a, s) => a + saleTotal(s), 0);

@@ -1,4 +1,4 @@
-const CACHE = 'soleya-v10';
+const CACHE = 'soleya-v11';
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'qrcode.js', 'icons/logo-negro.png', 'icons/logo-dorado.png', 'fonts/cormorant-garamond-latin-600-normal.woff2', 'fonts/cormorant-garamond-latin-700-normal.woff2', 'fonts/cormorant-garamond-latin-500-italic.woff2', 'fonts/poppins-latin-400-normal.woff2', 'fonts/poppins-latin-500-normal.woff2', 'fonts/poppins-latin-600-normal.woff2', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {
